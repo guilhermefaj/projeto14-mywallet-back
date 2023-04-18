@@ -55,5 +55,28 @@ app.post("/cadastro", async (req, res) => {
     }
 })
 
+app.post("/login", async (req, res) => {
+    const { email, password } = req.body
+
+    const validation = signInSchema.validate(req.body, { abortEarly: false })
+    if (validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
+
+    try {
+        const user = await db.collection("cadastro").findOne({ email })
+
+        if (!user) {
+            return res.status(404).send("O email não está cadastrado")
+        }
+
+        if (user.password !== password) {
+            return res.status(401).send("Senha inválida")
+        }
+
+        res.sendStatus(200)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+})
+
 const PORT = 5000
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`))
