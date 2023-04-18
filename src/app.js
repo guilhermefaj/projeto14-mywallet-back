@@ -93,8 +93,17 @@ app.post("/nova-transacao/:tipo", async (req, res) => {
         value = value * (-1)
     }
     try {
-        await db.collection("nova-transacao").insertOne({ value })
+        await db.collection("transacoes").insertOne({ value })
         res.status(201).send(`O valor ${value} foi inserido no fluxo de caixa.`)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+})
+
+app.get("/home", async (req, res) => {
+    try {
+        const operacoes = await db.collection("transacoes").find().toArray()
+        res.status(200).send(operacoes)
     } catch (err) {
         res.status(500).send(err.message)
     }
