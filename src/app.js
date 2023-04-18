@@ -23,25 +23,32 @@ try {
 const db = mongoClient.db()
 
 // Schemas
-const userSchema = joi.object({
+const signInSchema = joi.object({
     email: joi.string().email().required(),
     password: joi.string().min(3).alphanum().required()
 })
 
-// Endpoints
-app.post("/users", async (req, res) => {
-    const { email, password } = req.body
+const signUpSchema = joi.object({
+    name: joi.string().required(),
+    email: joi.string().email().required(),
+    password: joi.string().min(3).alphanum().required(),
+    confirmPassword: joi.string().min(3).alphanum().required().valid(joi.ref('password'))
+})
 
-    const validation = userSchema.validate(req.body, { abortEarly: false })
+// Endpoints
+app.post("/cadastro", async (req, res) => {
+    const { name, email, password, confirmPassword } = req.body
+
+    const validation = signUpSchema.validate(req.body, { abortEarly: false })
     if (validation.error) {
         return res.status(422).send(validation.error.details.map(detail => detail.message))
     }
 
     try {
-        const user = await db.collection("users").findOne({ email })
+        const user = await db.collection("cadastro").findOne({ email })
         if (user) return res.status(409).send("O e-mail já foi cadastrado.")
 
-        await db.collection("users").insertOne(req.body)
+        await db.collection("cadastro").insertOne(req.body)
         res.sendStatus(201)
     } catch (err) {
         res.status(500).send(err.message)
