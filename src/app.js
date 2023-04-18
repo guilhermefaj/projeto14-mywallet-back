@@ -35,6 +35,10 @@ const signUpSchema = joi.object({
     confirmPassword: joi.string().min(3).alphanum().required().valid(joi.ref('password'))
 })
 
+const cashFlowSchema = joi.object({
+    value: joi.number().greater(0).precision(2).required()
+})
+
 // Endpoints
 app.post("/cadastro", async (req, res) => {
     const { name, email, password, confirmPassword } = req.body
@@ -73,6 +77,24 @@ app.post("/login", async (req, res) => {
         }
 
         res.sendStatus(200)
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
+})
+
+app.post("/nova-transacao/:tipo", async (req, res) => {
+    const { tipo } = req.params
+    let { value } = req.body
+
+    const validation = cashFlowSchema.validate(req.body, { abortEarly: false })
+    if (validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
+
+    if (tipo === "saida") {
+        value = value * (-1)
+    }
+    try {
+        await db.collection("nova-transacao").insertOne({ value })
+        res.status(201).send(`O valor ${value} foi inserido no fluxo de caixa.`)
     } catch (err) {
         res.status(500).send(err.message)
     }
