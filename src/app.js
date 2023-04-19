@@ -76,7 +76,7 @@ app.post("/login", async (req, res) => {
 
         const token = uuid()
         await db.collection("sessoes").insertOne({ token, userId: user._id })
-        res.send({ ...req.body, token })
+        res.send({ email: user.email, password: user.hash, token })
     } catch (err) {
         res.status(500).send(err.message)
     }
