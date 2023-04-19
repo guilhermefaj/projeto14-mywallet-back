@@ -2,7 +2,7 @@ import cors from "cors"
 import dotenv from "dotenv"
 import express from "express"
 import joi from "joi"
-import { MongoClient, ObjectId } from "mongodb"
+import { MongoClient } from "mongodb"
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
 
@@ -97,7 +97,7 @@ app.post("/nova-transacao/:tipo", async (req, res) => {
         const session = await db.collection("sessoes").findOne({ token })
         if (!session) return res.status(401).send("Token inválido")
 
-        await db.collection("transacoes").insertOne({ ...req.body, userId: session.userId })
+        await db.collection("transacoes").insertOne({ ...req.body, type: tipo, userId: session.userId })
         res.status(201).send(`O valor ${value} foi inserido no fluxo de caixa.`)
     } catch (err) {
         res.status(500).send(err.message)
