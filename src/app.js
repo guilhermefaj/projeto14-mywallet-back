@@ -34,10 +34,10 @@ const signUpSchema = joi.object({
     name: joi.string().required(),
     email: joi.string().email().required(),
     password: joi.string().min(3).alphanum().required(),
-    confirmPassword: joi.string().min(3).alphanum().required().valid(joi.ref('password'))
 })
 
 const cashFlowSchema = joi.object({
+    transactionName: joi.string().min(1).required(),
     value: joi.number().greater(0).precision(2).required()
 })
 
@@ -84,13 +84,20 @@ app.post("/login", async (req, res) => {
 
 app.post("/nova-transacao/:tipo", async (req, res) => {
     const { tipo } = req.params
-    let { value } = req.body
+    let { transactionName, value } = req.body
+    const { authorization } = req.headers
+    const token = authorization?.replace("Bearer ", "")
 
     const validation = cashFlowSchema.validate(req.body, { abortEarly: false })
     if (validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
 
+    if (!token) return res.status(401).send("Token não encontrado")
+
     try {
-        await db.collection("transacoes").insertOne({ value })
+        const session = await db.collection("sessoes").findOne({ token })
+        if (!session) return res.status(401).send("Token inválido")
+
+        await db.collection("transacoes").insertOne({ ...req.body, userId: session.userId })
         res.status(201).send(`O valor ${value} foi inserido no fluxo de caixa.`)
     } catch (err) {
         res.status(500).send(err.message)
@@ -98,9 +105,18 @@ app.post("/nova-transacao/:tipo", async (req, res) => {
 })
 
 app.get("/home", async (req, res) => {
+    const { authorization } = req.headers
+    const token = authorization?.replace("Bearer ", "")
+
+    if (!token) return res.status(401).send("Token não encontrado")
+
     try {
-        const operacoes = await db.collection("transacoes").find().toArray()
-        res.status(200).send(operacoes)
+        const session = await db.collection("sessoes").findOne({ token })
+        if (!session) return res.status(401).send("Token inválido")
+
+        const transactions = await db.collection("transacoes").find({ userId: session.userId }).toArray()
+
+        res.status(200).send(transactions)
     } catch (err) {
         res.status(500).send(err.message)
     }
