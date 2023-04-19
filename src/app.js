@@ -2,7 +2,9 @@ import cors from "cors"
 import dotenv from "dotenv"
 import express from "express"
 import joi from "joi"
-import { MongoClient } from "mongodb"
+import { MongoClient, ObjectId } from "mongodb"
+import bcrypt from "bcrypt"
+import { v4 as uuid } from "uuid"
 
 const app = express()
 
@@ -41,18 +43,18 @@ const cashFlowSchema = joi.object({
 
 // Endpoints
 app.post("/cadastro", async (req, res) => {
-    const { name, email, password, confirmPassword } = req.body
+    const { name, email, password } = req.body
 
     const validation = signUpSchema.validate(req.body, { abortEarly: false })
-    if (validation.error) {
-        return res.status(422).send(validation.error.details.map(detail => detail.message))
-    }
+    if (validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
 
     try {
         const user = await db.collection("cadastro").findOne({ email })
         if (user) return res.status(409).send("O e-mail já foi cadastrado.")
 
-        await db.collection("cadastro").insertOne(req.body)
+        const hash = bcrypt.hashSync(password, 10)
+
+        await db.collection("cadastro").insertOne({ name, email, password: hash })
         res.sendStatus(201)
     } catch (err) {
         res.status(500).send(err.message)
@@ -67,16 +69,14 @@ app.post("/login", async (req, res) => {
 
     try {
         const user = await db.collection("cadastro").findOne({ email })
+        if (!user) return res.status(404).send("O e-mail não está cadastrado")
 
-        if (!user) {
-            return res.status(404).send("O email não está cadastrado")
-        }
+        const passwordCorrect = bcrypt.compareSync(password, user.password)
+        if (!passwordCorrect) return res.status(401).send("Senha incorreta")
 
-        if (user.password !== password) {
-            return res.status(401).send("Senha inválida")
-        }
-
-        res.sendStatus(200)
+        const token = uuid()
+        await db.collection("sessoes").insertOne({ token, userId: user._id })
+        res.send(token)
     } catch (err) {
         res.status(500).send(err.message)
     }
@@ -89,9 +89,6 @@ app.post("/nova-transacao/:tipo", async (req, res) => {
     const validation = cashFlowSchema.validate(req.body, { abortEarly: false })
     if (validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
 
-    if (tipo === "saida") {
-        value = value * (-1)
-    }
     try {
         await db.collection("transacoes").insertOne({ value })
         res.status(201).send(`O valor ${value} foi inserido no fluxo de caixa.`)
