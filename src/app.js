@@ -5,6 +5,7 @@ import joi from "joi"
 import { MongoClient } from "mongodb"
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
+import dayjs from "dayjs"
 
 const app = express()
 
@@ -76,7 +77,7 @@ app.post("/login", async (req, res) => {
 
         const token = uuid()
         await db.collection("sessoes").insertOne({ token, userId: user._id })
-        res.send({ userId: user._id, email: user.email, token })
+        res.send({ name: user.name, userId: user._id, email: user.email, token })
     } catch (err) {
         res.status(500).send(err.message)
     }
@@ -97,7 +98,9 @@ app.post("/nova-transacao/:tipo", async (req, res) => {
         const session = await db.collection("sessoes").findOne({ token })
         if (!session) return res.status(401).send("Token inválido")
 
-        await db.collection("transacoes").insertOne({ ...req.body, type: tipo, userId: session.userId })
+        const date = dayjs().format("DD/MM")
+
+        await db.collection("transacoes").insertOne({ ...req.body, type: tipo, userId: session.userId, date: date })
         res.status(201).send(`O valor ${value} foi inserido no fluxo de caixa.`)
     } catch (err) {
         res.status(500).send(err.message)
