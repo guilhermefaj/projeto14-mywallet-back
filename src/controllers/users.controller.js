@@ -1,13 +1,9 @@
 import { db } from "../database/database.connection.js"
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
-import { signInSchema, signUpSchema } from "../schemas/users.schemas.js"
 
 export async function postCadastro(req, res) {
     const { name, email, password } = req.body
-
-    const validation = signUpSchema.validate(req.body, { abortEarly: false })
-    if (validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
 
     try {
         const user = await db.collection("cadastro").findOne({ email })
@@ -24,9 +20,6 @@ export async function postCadastro(req, res) {
 
 export async function postLogin(req, res) {
     const { email, password } = req.body
-
-    const validation = signInSchema.validate(req.body, { abortEarly: false })
-    if (validation.error) return res.status(422).send(validation.error.details.map(detail => detail.message))
 
     try {
         const user = await db.collection("cadastro").findOne({ email })
