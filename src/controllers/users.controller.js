@@ -1,6 +1,7 @@
-import { db, signInSchema, signUpSchema } from "../app.js"
+import { db } from "../database/database.connection.js"
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
+import { signInSchema, signUpSchema } from "../schemas/users.schemas.js"
 
 export async function postCadastro(req, res) {
     const { name, email, password } = req.body

@@ -1,5 +1,6 @@
-import { cashFlowSchema, db } from "../app.js"
+import { db } from "../database/database.connection.js"
 import dayjs from "dayjs"
+import { cashFlowSchema } from "../schemas/transactions.schemas.js"
 
 export async function postNovaTransacao(req, res) {
     const { tipo } = req.params
