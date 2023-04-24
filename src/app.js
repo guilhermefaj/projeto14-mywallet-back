@@ -3,19 +3,17 @@ import dotenv from "dotenv"
 import express from "express"
 import joi from "joi"
 import { MongoClient } from "mongodb"
-
-import { postCadastro, postLogin } from "./controllers/usersController.js"
-import { getTransacoes, postNovaTransacao } from "./controllers/transactionsController.js"
-
+import router from "./routes/index.routes.js"
 const app = express()
 
 // Configs
 app.use(cors())
 app.use(express.json())
+app.use(router)
 dotenv.config()
 
 // Conexão DB
-const mongoClient = new MongoClient(process.env.BASE_URL)
+const mongoClient = new MongoClient(process.env.MONGO_URI)
 try {
     await mongoClient.connect()
     console.log("MongoDB conectado!")
@@ -41,12 +39,6 @@ export const cashFlowSchema = joi.object({
     transactionName: joi.string().min(1).required(),
     value: joi.number().greater(0).precision(2).required()
 })
-
-// Endpoints
-app.post("/cadastro", postCadastro)
-app.post("/login", postLogin)
-app.post("/nova-transacao/:tipo", postNovaTransacao)
-app.get("/home", getTransacoes)
 
 
 const port = process.env.PORT || 5000
